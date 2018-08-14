@@ -3,6 +3,7 @@ package org.gesnuby.vetclinic.repository
 import cats.data.OptionT
 import cats.effect.{Async, Sync}
 import cats.implicits._
+import scalacache.Cache
 import scalacache.serialization.Codec
 import tsec.authentication.BackingStore
 
@@ -25,35 +26,30 @@ object BackingStore {
         }
 
       def delete(id: I): F[Unit] =
-        store.delete(id).map(_ => ())
+        store.delete(id).as(())
 
       def get(id: I): OptionT[F, V] =
         OptionT(store.get(id))
     }
 
   /**
-    * BackingStore backed by Redis
+    * BackingStore backed by scalacache Cache
     */
-  def redis[F[_], I, V: Codec](getId: V => I)(implicit F: Async[F]): BackingStore[F, I ,V] = {
-    import scalacache._
-    import scalacache.redis._
+  def cached[F[_]: Async, I, V: Codec](getId: V => I)(implicit cache: Cache[V]): BackingStore[F, I ,V] = {
     import scalacache.CatsEffect.modes.async
-    import scalacache.serialization.binary._
-
-    implicit val redisCache: Cache[V] = RedisCache[V]("0.0.0.0", 32771)
 
     new BackingStore[F, I, V] {
       def put(v: V): F[V] =
-        redisCache.put(getId(v))(v).map(_ => v)
+        cache.put(getId(v))(v).as(v)
 
       def update(v: V): F[V] =
         put(v)
 
       def delete(id: I): F[Unit] =
-        redisCache.remove(id).map(_ => ())
+        cache.remove(id).as(())
 
       def get(id: I): OptionT[F, V] =
-        OptionT(redisCache.get(id))
+        OptionT(cache.get(id))
     }
   }
 }

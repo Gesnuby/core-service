@@ -54,6 +54,11 @@ trait KVStore[F[_], S[_[_], _], K, V] {
     * @return stream of records
     */
   def values: S[F, V]
+
+  /**
+    * Remove all records
+    */
+  def clear: F[Unit]
 }
 
 import fs2.Stream
@@ -61,7 +66,7 @@ import fs2.Stream
 class InMemoryKVStore[F[_]: Sync, K, V] extends KVStore[F, Stream, K, V] {
   import cats.implicits._
 
-  private val F = implicitly[Sync[F]]
+  private val F = Sync[F]
 
   private val store = new TrieMap[K, V]()
 
@@ -73,7 +78,7 @@ class InMemoryKVStore[F[_]: Sync, K, V] extends KVStore[F, Stream, K, V] {
   }
 
   def update(key: K, value: V): F[Option[V]] = F.delay {
-    store.replace(key, value).map(_ => value)
+    store.replace(key, value).as(value)
   }
 
   def delete(key: K): F[Option[V]] = F.delay {
@@ -83,5 +88,9 @@ class InMemoryKVStore[F[_]: Sync, K, V] extends KVStore[F, Stream, K, V] {
   def values: Stream[F, V] = {
     val iterator = store.valuesIterator
     Stream.unfold(iterator)(i => if (i.hasNext) Some(i.next(), i) else None)
+  }
+
+  def clear: F[Unit] = F.delay {
+    store.clear()
   }
 }

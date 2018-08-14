@@ -1,7 +1,5 @@
 package org.gesnuby.vetclinic.service
 
-import java.util.UUID
-
 import cats.data.EitherT
 import cats.effect.Sync
 import cats.implicits._
@@ -35,7 +33,7 @@ class UserService[F[_]: Sync](userRepo: UserRepository[F],
     for {
       user <- EitherT.right[String](userFromSignupRequest(userSignup))
       _ <- userValidation.loginIsUnique(user)
-      createdUser <- EitherT.fromOptionF(userRepo.create(user), "User already exists")
+      createdUser <- EitherT.right[String](userRepo.create(user))
     } yield createdUser
   }
 
@@ -53,7 +51,7 @@ class UserService[F[_]: Sync](userRepo: UserRepository[F],
   /**
     * Delete user by it's id
     */
-  def deleteUser(id: UserId): EitherT[F, String, User] =
+  def deleteUser(id: UserId): EitherT[F, String, UserId] =
     EitherT.fromOptionF(userRepo.delete(id), "User not found")
 
   /**
@@ -64,7 +62,7 @@ class UserService[F[_]: Sync](userRepo: UserRepository[F],
   private def userFromSignupRequest(req: UserSignupRequest): F[User] =
     for {
       hashedPassword <- authService.hashPassword(req.password)
-    } yield User(UUID.randomUUID(), req.login, hashedPassword, req.email)
+    } yield User(req.login, hashedPassword, req.email)
 
   /**
     * (User, UserUpdateRequest) -> User

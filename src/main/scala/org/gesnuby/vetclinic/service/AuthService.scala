@@ -4,10 +4,9 @@ import cats.data.EitherT
 import cats.effect.Sync
 import cats.implicits._
 import de.mkammerer.argon2.Argon2Factory
-import org.gesnuby.vetclinic.model.User
+import org.gesnuby.vetclinic.model.{LoginRequest, User}
 import org.gesnuby.vetclinic.repository.algebra.UserRepository
 import org.gesnuby.vetclinic.security.ArgonSettings
-import org.gesnuby.vetclinic.security.Auth.LoginRequest
 
 class AuthService[F[_]: Sync](userRepo: UserRepository[F], argonSettings: ArgonSettings = ArgonSettings.default) {
 

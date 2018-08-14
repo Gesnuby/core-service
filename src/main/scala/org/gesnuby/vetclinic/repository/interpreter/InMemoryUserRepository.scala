@@ -7,33 +7,31 @@ import org.gesnuby.vetclinic.model.User.UserId
 import org.gesnuby.vetclinic.repository.InMemoryKVStore
 import org.gesnuby.vetclinic.repository.algebra.UserRepository
 
-class InMemoryUserRepository[F[_]: Sync] extends UserRepository[F] {
+class InMemoryUserRepository[F[_]: Sync](private val store: InMemoryKVStore[F, UserId, User]) extends UserRepository[F] {
   import cats.implicits._
 
-  val cache = new InMemoryKVStore[F, UserId, User]
-
   def all: Stream[F, User] =
-    cache.values
+    store.values
 
   def get(userId: UserId): F[Option[User]] =
-    cache.get(userId)
+    store.get(userId)
 
-  def create(user: User): F[Option[User]] =
-    cache.put(user.id, user).map(Some(_))
+  def create(user: User): F[User] =
+    store.put(user.id, user)
 
   def update(user: User): F[Option[User]] =
-    cache.update(user.id, user)
+    store.update(user.id, user)
 
-  def delete(userId: UserId): F[Option[User]] =
-    cache.delete(userId)
-
-  def loginExists(login: String): F[Boolean] =
-    cache.values.exists(_.login == login).compile.toList.map(_.head)
+  def delete(userId: UserId): F[Option[UserId]] =
+    for {
+      mu <- store.delete(userId)
+    } yield mu.map(_.id)
 
   def findByLogin(login: String): F[Option[User]] =
-    cache.values.find(_.login == login).compile.toList.map(_.headOption)
+    store.values.find(_.login == login).compile.toList.map(_.headOption)
 }
 
 object InMemoryUserRepository {
-  def apply[F[_]: Sync](): InMemoryUserRepository[F] = new InMemoryUserRepository[F]
+  def apply[F[_]: Sync](store: InMemoryKVStore[F, UserId, User]): InMemoryUserRepository[F] =
+    new InMemoryUserRepository[F](store)
 }

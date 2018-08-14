@@ -10,7 +10,7 @@ import io.circe.syntax._
 import org.gesnuby.vetclinic.http.UUIDVar
 import org.gesnuby.vetclinic.model.User.UserId
 import org.gesnuby.vetclinic.model.{User, UserSignupRequest, UserUpdateRequest}
-import org.gesnuby.vetclinic.security.Auth.{Cookie, SecuredService}
+import org.gesnuby.vetclinic.security.Auth.{Cookie, SecuredHandler, SecuredService}
 import org.gesnuby.vetclinic.service.UserService
 import org.http4s.circe._
 import org.http4s.dsl.Http4sDsl
@@ -18,7 +18,7 @@ import org.http4s.headers.`Content-Type`
 import org.http4s.{EntityDecoder, HttpService, MediaType}
 import tsec.authentication.{SecuredRequestHandler, TSecAuthService, _}
 
-class UserEndpoint[F[_]: Sync](securedRequestHandler: SecuredRequestHandler[F, UserId, User, Cookie],
+class UserEndpoint[F[_]: Sync](securedRequestHandler: SecuredHandler[F],
                                userService: UserService[F]) extends Http4sDsl[F] {
 
   implicit val signupDecoder: EntityDecoder[F, UserSignupRequest] = jsonOf[F, UserSignupRequest]
@@ -31,8 +31,8 @@ class UserEndpoint[F[_]: Sync](securedRequestHandler: SecuredRequestHandler[F, U
     }
   }
 
-  private def getUsersEndpoint: SecuredService[F] = TSecAuthService {
-    case GET -> Root asAuthed _ =>
+  private def getUsersEndpoint: HttpService[F] = HttpService[F] {
+    case GET -> Root =>
       Ok(userService.getUsers.asJsonArray, `Content-Type`(MediaType.`application/json`))
   }
 
@@ -78,14 +78,14 @@ class UserEndpoint[F[_]: Sync](securedRequestHandler: SecuredRequestHandler[F, U
       }
   }
 
-  def endpoints: HttpService[F] = securedRequestHandler.liftWithFallthrough(
-    getUserEndpoint <+> getUsersEndpoint <+>
+  def endpoints: HttpService[F] = getUsersEndpoint <+> securedRequestHandler.liftWithFallthrough(
+    getUserEndpoint <+>
       createUserEndpoint <+> updateUserEndpoint <+>
       deleteUserEndpoint)
 }
 
 object UserEndpoint {
-  def endpoints[F[_]: Sync](securedRequestHandler: SecuredRequestHandler[F, UserId, User, Cookie],
+  def endpoints[F[_]: Sync](securedRequestHandler: SecuredHandler[F],
                             userService: UserService[F]): HttpService[F] =
     new UserEndpoint[F](securedRequestHandler, userService).endpoints
 }

@@ -9,26 +9,21 @@ import org.gesnuby.vetclinic.repository.algebra.UserRepository
 import tsec.authentication.BackingStore
 
 /**
-  * Adapter between [[tsec.authentication.BackingStore]] and [[org.gesnuby.vetclinic.repository.algebra.UserRepository]]
+  * Adapter between BackingStore and UserRepository
   */
 class UserBackingStore[F[_]: Sync](userRepo: UserRepository[F]) extends BackingStore[F, UserId, User] {
 
-  private val F = implicitly[Sync[F]]
-
   def put(user: User): F[User] =
-    userRepo.create(user).flatMap {
-      case Some(u) => u.pure[F]
-      case None => F.raiseError(new IllegalArgumentException)
-    }
+    userRepo.create(user)
 
   def update(user: User): F[User] =
     userRepo.update(user).flatMap {
       case Some(u) => u.pure[F]
-      case None => F.raiseError(new IllegalArgumentException)
+      case None => Sync[F].raiseError(new IllegalArgumentException)
     }
 
   def delete(id: UserId): F[Unit] =
-    userRepo.delete(id).map(_ => ())
+    userRepo.delete(id).as(())
 
   def get(id: UserId): OptionT[F, User] =
     OptionT(userRepo.get(id))
