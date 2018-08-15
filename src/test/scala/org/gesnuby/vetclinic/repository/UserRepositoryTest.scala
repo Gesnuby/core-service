@@ -30,7 +30,7 @@ trait UserRepositoryTest extends FunSuite with Matchers with BeforeAndAfter {
   // Clear underlying storage
   def clear: IO[Unit]
 
-  val user = User("user", "password", "test@email.ru")
+  val userF: IO[User] = User[IO]("user", "password", "test@email.ru")
 
   // Clear underlying storage before every test
   before {
@@ -47,12 +47,14 @@ trait UserRepositoryTest extends FunSuite with Matchers with BeforeAndAfter {
   }
 
   test("all when there are users") {
-    val users = List(
-      User("user1", "password1", "test1@email.ru"),
-      User("user2", "password2", "test2@email.ru"),
-      User("user3", "password3", "test3@email.ru")
-    )
+    import cats.implicits._
+    val usersF = List(
+      User[IO]("user1", "password1", "test1@email.ru"),
+      User[IO]("user2", "password2", "test2@email.ru"),
+      User[IO]("user3", "password3", "test3@email.ru")
+    ).sequence
     val test = for {
+      users <- usersF
       _ <- saveAll(users)
       all <- repo.all.compile.toList
     } yield {
@@ -63,6 +65,7 @@ trait UserRepositoryTest extends FunSuite with Matchers with BeforeAndAfter {
 
   test("get when user exists") {
     val test = for {
+      user <- userF
       _ <- save(user)
       maybeUser <- repo.get(user.id)
     } yield {
@@ -73,7 +76,8 @@ trait UserRepositoryTest extends FunSuite with Matchers with BeforeAndAfter {
 
   test("get when user doesn't exist") {
     val test = for {
-      maybeUser <- repo.get(User.uniqueId)
+      id <- User.uniqueId[IO]
+      maybeUser <- repo.get(id)
     } yield {
       maybeUser shouldBe None
     }
@@ -82,6 +86,7 @@ trait UserRepositoryTest extends FunSuite with Matchers with BeforeAndAfter {
 
   test("create") {
     val test = for {
+      user <- userF
       savedUser <- repo.create(user)
     } yield {
       savedUser shouldBe user
@@ -90,18 +95,20 @@ trait UserRepositoryTest extends FunSuite with Matchers with BeforeAndAfter {
   }
 
   test("update when user exists") {
-    val update = user.copy(password = "new_password", email = "test@yahoo.com")
     val test = for {
-      _ <- save(user)
-      maybeUser <- repo.update(update)
+      user <- userF
+      updatedUser = user.copy(password = "new_password", email = "test@yahoo.com")
+      _ <- save(updatedUser)
+      maybeUser <- repo.update(updatedUser)
     } yield {
-      maybeUser shouldBe Some(update)
+      maybeUser shouldBe Some(updatedUser)
     }
     test.unsafeRunSync()
   }
 
   test("update when user doesn't exist") {
     val test = for {
+      user <- userF
       maybeUser <- repo.update(user)
     } yield {
       maybeUser shouldBe None
@@ -111,6 +118,7 @@ trait UserRepositoryTest extends FunSuite with Matchers with BeforeAndAfter {
 
   test("delete when user exists") {
     val test = for {
+      user <- userF
       _ <- save(user)
       maybeUserId <- repo.delete(user.id)
     } yield {
@@ -121,7 +129,8 @@ trait UserRepositoryTest extends FunSuite with Matchers with BeforeAndAfter {
 
   test("delete when user doesn't exist") {
     val test = for {
-      maybeUserId <- repo.delete(User.uniqueId)
+      id <- User.uniqueId[IO]
+      maybeUserId <- repo.delete(id)
     } yield {
       maybeUserId shouldBe None
     }
@@ -130,6 +139,7 @@ trait UserRepositoryTest extends FunSuite with Matchers with BeforeAndAfter {
 
   test("findByLogin when user exists") {
     val test = for {
+      user <- userF
       _ <- save(user)
       maybeUser <- repo.findByLogin(user.login)
     } yield {

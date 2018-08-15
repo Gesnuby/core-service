@@ -1,15 +1,15 @@
-val http4sVersion = "0.18.15"
-val logbackVersion = "1.2.3"
-val pureConfigVersion = "0.9.1"
-val tSecVersion = "0.0.1-M11"
-val scalacacheVersion = "0.24.2"
-val doobieVersion = "0.5.3"
-val flywayVersion = "5.1.4"
-val scalatestVersion = "3.0.5"
-val scalacheckVersion = "1.14.0"
-val testcontainersScalaVersion = "0.20.0"
-val testcontainersPostgresVersion = "1.8.3"
-val swaggerUIVersion = "3.17.6"
+val http4sV = "0.18.16"
+val logbackV = "1.2.3"
+val pureConfigV = "0.9.1"
+val tSecV = "0.0.1-M11"
+val scalacacheV = "0.24.2"
+val doobieV = "0.5.3"
+val flywayV = "5.1.4"
+val scalatestV = "3.0.5"
+val scalacheckV = "1.14.0"
+val testcontainersScalaV = "0.20.0"
+val testcontainersPostgresV = "1.8.3"
+val swaggerUIV = "3.17.6"
 
 lazy val core = (project in file("."))
   .settings(
@@ -18,36 +18,38 @@ lazy val core = (project in file("."))
     scalaVersion := "2.12.6",
     libraryDependencies ++= Seq(
       // http4s
-      "org.http4s" %% "http4s-dsl" % http4sVersion,
-      "org.http4s" %% "http4s-blaze-server" % http4sVersion,
+      "org.http4s" %% "http4s-dsl" % http4sV,
+      "org.http4s" %% "http4s-blaze-server" % http4sV,
       // https4s circe support
-      "org.http4s" %% "http4s-circe" % http4sVersion,
+      "org.http4s" %% "http4s-circe" % http4sV,
       // security
-      "io.github.jmcardon" %% "tsec-common" % tSecVersion,
-      "io.github.jmcardon" %% "tsec-http4s" % tSecVersion,
+      "io.github.jmcardon" %% "tsec-common" % tSecV,
+      "io.github.jmcardon" %% "tsec-http4s" % tSecV,
       "de.mkammerer" % "argon2-jvm" % "2.4",
       // database
-      "org.tpolecat" %% "doobie-core" % doobieVersion,
-      "org.tpolecat" %% "doobie-postgres" % doobieVersion,
-      "org.tpolecat" %% "doobie-hikari" % doobieVersion,
+      "org.tpolecat" %% "doobie-core" % doobieV,
+      "org.tpolecat" %% "doobie-postgres" % doobieV,
+      "org.tpolecat" %% "doobie-hikari" % doobieV,
       // database migrations
-      "org.flywaydb" % "flyway-core" % flywayVersion,
+      "org.flywaydb" % "flyway-core" % flywayV,
+      // validation
+      "commons-validator" % "commons-validator" % "1.6",
       // scalacache
-      "com.github.cb372" %% "scalacache-redis" % scalacacheVersion,
-      "com.github.cb372" %% "scalacache-cats-effect" % scalacacheVersion,
-      "com.github.cb372" %% "scalacache-circe" % scalacacheVersion,
+      "com.github.cb372" %% "scalacache-redis" % scalacacheV,
+      "com.github.cb372" %% "scalacache-cats-effect" % scalacacheV,
+      "com.github.cb372" %% "scalacache-circe" % scalacacheV,
       // configuration
-      "com.github.pureconfig" %% "pureconfig" % pureConfigVersion,
+      "com.github.pureconfig" %% "pureconfig" % pureConfigV,
       // logging
-      "ch.qos.logback" % "logback-classic" % logbackVersion,
+      "ch.qos.logback" % "logback-classic" % logbackV,
       // swagger-ui
-      "org.webjars" % "swagger-ui" % swaggerUIVersion,
+      "org.webjars" % "swagger-ui" % swaggerUIV,
       // testing
-      "org.scalatest" %% "scalatest" % scalatestVersion % Test,
-      "org.scalacheck" %% "scalacheck" % scalacheckVersion % Test,
+      "org.scalatest" %% "scalatest" % scalatestV % Test,
+      "org.scalacheck" %% "scalacheck" % scalacheckV % Test,
       // database testing with testcontainers
-      "com.dimafeng" %% "testcontainers-scala" % testcontainersScalaVersion % Test,
-      "org.testcontainers" % "postgresql" % testcontainersPostgresVersion % Test
+      "com.dimafeng" %% "testcontainers-scala" % testcontainersScalaV % Test,
+      "org.testcontainers" % "postgresql" % testcontainersPostgresV % Test
     ),
     scalacOptions ++= Seq(
       "-deprecation",

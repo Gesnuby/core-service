@@ -28,7 +28,7 @@ class HttpApp[F[_] : Effect] extends StreamApp[F] {
       transactor = DoobieTransactor[F](config.db)
       userRepo = DoobieUserRepository[F](transactor)
       cache = RedisCache[Cookie](config.redis.host, config.redis.port)
-      authenticator = Auth.createAuthenticator(UserBackingStore[F](userRepo), cache)
+      authenticator = Auth.createAuthenticator(UserBackingStore[F](userRepo), cache, config.security)
       securedRequestHandler = SecuredRequestHandler(authenticator)
       userValidation = UserValidationInterpreter[F](userRepo)
       authService = AuthService[F](userRepo)

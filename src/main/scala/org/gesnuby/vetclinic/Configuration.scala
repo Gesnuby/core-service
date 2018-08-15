@@ -3,10 +3,11 @@ package org.gesnuby.vetclinic
 import cats.effect.Sync
 import cats.implicits._
 
-final case class AppConfig(server: ServerConfig, db: DBConfig, redis: RedisConfig)
+final case class AppConfig(server: ServerConfig, db: DBConfig, redis: RedisConfig, security: SecurityConfig)
 final case class ServerConfig(host: String, port: Int)
 final case class DBConfig(driver: String, url: String, username: String, password: String)
 final case class RedisConfig(host: String, port: Int)
+final case class SecurityConfig(cookieSecret: String)
 
 object Configuration {
 

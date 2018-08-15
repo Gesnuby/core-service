@@ -3,6 +3,7 @@ package org.gesnuby.vetclinic.security
 import java.util.UUID
 
 import cats.effect.Async
+import org.gesnuby.vetclinic.SecurityConfig
 import org.gesnuby.vetclinic.model.User
 import org.gesnuby.vetclinic.model.User.UserId
 import org.gesnuby.vetclinic.repository.BackingStore
@@ -26,10 +27,14 @@ object Auth {
     path = Some("/")
   )
 
-  def createAuthenticator[F[_]: Async](identityStore: BackingStore[F, UserId, User], cache: Cache[Cookie]): AppAuthenticator[F] = {
+  def createAuthenticator[F[_]: Async](
+            identityStore: BackingStore[F, UserId, User],
+            cache: Cache[Cookie],
+            securityConfig: SecurityConfig): AppAuthenticator[F] = {
+
     import scalacache.serialization.binary._
     val cookieStore: BackingStore[F, UUID, Cookie] = BackingStore.cached[F, UUID, Cookie](_.id)(implicitly, implicitly, cache)
-    val key: MacSigningKey[HMACSHA256] = HMACSHA256.buildKey("cookie-secret".getBytes)(HMACSHA256.idKeygenMac)
+    val key: MacSigningKey[HMACSHA256] = HMACSHA256.buildKey(securityConfig.cookieSecret.getBytes)(HMACSHA256.idKeygenMac)
     SignedCookieAuthenticator(cookieSettings, cookieStore, identityStore, key)
   }
 }

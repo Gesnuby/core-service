@@ -4,8 +4,9 @@ import cats.data.EitherT
 import cats.effect.Sync
 import cats.implicits._
 import fs2.Stream
+import org.gesnuby.vetclinic.model.Error.{Errors, userNotFound}
 import org.gesnuby.vetclinic.model.User.UserId
-import org.gesnuby.vetclinic.model.{User, UserSignupRequest, UserUpdateRequest}
+import org.gesnuby.vetclinic.model.{Error, User, UserNotFound, UserSignupRequest, UserUpdateRequest}
 import org.gesnuby.vetclinic.repository.algebra.UserRepository
 import org.gesnuby.vetclinic.validation.algebra.UserValidation
 
@@ -22,37 +23,38 @@ class UserService[F[_]: Sync](userRepo: UserRepository[F],
   /**
     * Find user by it's id
     */
-  def getUser(id: UserId): EitherT[F, String, User] =
-    EitherT.fromOptionF(userRepo.get(id), "User not found")
+  def getUser(id: UserId): EitherT[F, Error, User] =
+    EitherT.fromOptionF(userRepo.get(id), userNotFound)
 
   /**
     * Create new user
     * User's login must be unique
     */
-  def createUser(userSignup: UserSignupRequest): EitherT[F, String, User] = {
+  def createUser(userSignup: UserSignupRequest): EitherT[F, Errors, User] = {
     for {
-      user <- EitherT.right[String](userFromSignupRequest(userSignup))
-      _ <- userValidation.loginIsUnique(user)
-      createdUser <- EitherT.right[String](userRepo.create(user))
+      user <- EitherT.right[Errors](userFromSignupRequest(userSignup))
+      validUser <- EitherT(userValidation.validateNewUser(user).map(_.toEither))
+      createdUser <- EitherT.right[Errors](userRepo.create(validUser))
     } yield createdUser
   }
 
   /**
     * Update user info
     */
-  def updateUser(userId: UserId, userUpdate: UserUpdateRequest): EitherT[F, String, User] = {
+  def updateUser(userId: UserId, userUpdate: UserUpdateRequest): EitherT[F, Error, User] = {
     for {
       user <- getUser(userId)
-      userWithUpdates <- EitherT.right[String](userFromUpdateRequest(user, userUpdate))
-      updatedUser <- EitherT.fromOptionF(userRepo.update(userWithUpdates), "User not found")
+      userWithUpdates <- EitherT.right[Error](userFromUpdateRequest(user, userUpdate))
+      validUser <- EitherT(userValidation.emailIsValid(userWithUpdates).map(_.toEither))
+      updatedUser <- EitherT.fromOptionF(userRepo.update(validUser), userNotFound)
     } yield updatedUser
   }
 
   /**
     * Delete user by it's id
     */
-  def deleteUser(id: UserId): EitherT[F, String, UserId] =
-    EitherT.fromOptionF(userRepo.delete(id), "User not found")
+  def deleteUser(id: UserId): EitherT[F, Error, UserId] =
+    EitherT.fromOptionF(userRepo.delete(id), userNotFound)
 
   /**
     * UserSignupRequest -> User
@@ -62,7 +64,8 @@ class UserService[F[_]: Sync](userRepo: UserRepository[F],
   private def userFromSignupRequest(req: UserSignupRequest): F[User] =
     for {
       hashedPassword <- authService.hashPassword(req.password)
-    } yield User(req.login, hashedPassword, req.email)
+      user <- User(req.login, hashedPassword, req.email)
+    } yield user
 
   /**
     * (User, UserUpdateRequest) -> User
