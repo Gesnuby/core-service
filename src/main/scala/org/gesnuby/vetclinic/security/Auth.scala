@@ -20,7 +20,7 @@ object Auth {
   type AppAuthenticator[F[_]] = Authenticator[F, UserId, User, Cookie]
 
   private val cookieSettings = TSecCookieSettings(
-    cookieName = "tsec-auth",
+    cookieName = "sec-auth",
     secure = false,
     expiryDuration = 10.minutes,
     maxIdle = Some(30.minutes),
@@ -33,7 +33,7 @@ object Auth {
             securityConfig: SecurityConfig): AppAuthenticator[F] = {
 
     import scalacache.serialization.binary._
-    val cookieStore: BackingStore[F, UUID, Cookie] = BackingStore.cached[F, UUID, Cookie](_.id)(implicitly, implicitly, cache)
+    val cookieStore: BackingStore[F, UUID, Cookie] = BackingStore.cached[F, UUID, Cookie](_.id, Some(4 hours))(implicitly, implicitly, cache)
     val key: MacSigningKey[HMACSHA256] = HMACSHA256.buildKey(securityConfig.cookieSecret.getBytes)(HMACSHA256.idKeygenMac)
     SignedCookieAuthenticator(cookieSettings, cookieStore, identityStore, key)
   }

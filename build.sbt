@@ -10,6 +10,7 @@ val scalacheckV = "1.14.0"
 val testcontainersScalaV = "0.20.0"
 val testcontainersPostgresV = "1.8.3"
 val swaggerUIV = "3.17.6"
+val zincV = "1.2.1"
 
 lazy val core = (project in file("."))
   .settings(
@@ -36,6 +37,7 @@ lazy val core = (project in file("."))
       "commons-validator" % "commons-validator" % "1.6",
       // scalacache
       "com.github.cb372" %% "scalacache-redis" % scalacacheV,
+      "com.github.cb372" %% "scalacache-caffeine" % scalacacheV,
       "com.github.cb372" %% "scalacache-cats-effect" % scalacacheV,
       "com.github.cb372" %% "scalacache-circe" % scalacacheV,
       // configuration
@@ -44,6 +46,8 @@ lazy val core = (project in file("."))
       "ch.qos.logback" % "logback-classic" % logbackV,
       // swagger-ui
       "org.webjars" % "swagger-ui" % swaggerUIV,
+      // incremental compilation
+      "org.scala-sbt" %% "zinc" % zincV,
       // testing
       "org.scalatest" %% "scalatest" % scalatestV % Test,
       "org.scalacheck" %% "scalacheck" % scalacheckV % Test,
@@ -56,6 +60,7 @@ lazy val core = (project in file("."))
       "-feature",
       "-encoding", "utf-8",
       "-language:higherKinds",
+      "-language:postfixOps",
       "-Ypartial-unification"
     ),
     mainClass in Compile := Some("org.gesnuby.vetclinic.App"),

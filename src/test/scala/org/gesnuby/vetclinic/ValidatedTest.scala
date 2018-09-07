@@ -9,7 +9,7 @@ import cats.implicits._
 import cats.effect.implicits._
 import cats.syntax._
 import fs2.Stream
-import org.gesnuby.vetclinic.model.{Error, UserAlreadyExists, UserNotFound}
+import org.gesnuby.vetclinic.model.{UserError, UserAlreadyExists, UserNotFound}
 
 import scala.concurrent.Future
 

@@ -6,7 +6,7 @@ import io.circe.generic.auto._
 import io.circe.syntax._
 import io.circe.{Encoder, Json}
 import org.gesnuby.vetclinic.http.UUIDVar
-import org.gesnuby.vetclinic.model.{Error, UserSignupRequest, UserUpdateRequest}
+import org.gesnuby.vetclinic.model.{UserError, UserSignupRequest, UserUpdateRequest}
 import org.gesnuby.vetclinic.security.Auth.{SecuredHandler, SecuredService}
 import org.gesnuby.vetclinic.service.UserService
 import org.http4s.circe._
@@ -20,7 +20,7 @@ class UserEndpoint[F[_]: Sync](securedRequestHandler: SecuredHandler[F],
 
   implicit val signupDecoder: EntityDecoder[F, UserSignupRequest] = jsonOf[F, UserSignupRequest]
   implicit val updateDecoder: EntityDecoder[F, UserUpdateRequest] = jsonOf[F, UserUpdateRequest]
-  implicit val errorEncoder: Encoder[Error] = (error: Error) => Json.fromString(error.message)
+  implicit val errorEncoder: Encoder[UserError] = (error: UserError) => Json.fromString(error.message)
 
   implicit class StreamToJson[M[_], V: Encoder](values: fs2.Stream[M, V]) {
     import fs2.Stream
@@ -49,7 +49,7 @@ class UserEndpoint[F[_]: Sync](securedRequestHandler: SecuredHandler[F],
         result <- userService.createUser(signup).value
       } yield result
       action.flatMap {
-        case Right(user) => Ok(user.asJson)
+        case Right(user) => Created(user.asJson)
         case Left(errors) => BadRequest(errors.asJson)
       }
   }

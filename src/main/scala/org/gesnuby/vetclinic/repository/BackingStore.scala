@@ -7,6 +7,8 @@ import scalacache.Cache
 import scalacache.serialization.Codec
 import tsec.authentication.BackingStore
 
+import scala.concurrent.duration.Duration
+
 object BackingStore {
 
   /**
@@ -35,12 +37,12 @@ object BackingStore {
   /**
     * BackingStore backed by scalacache Cache
     */
-  def cached[F[_]: Async, I, V: Codec](getId: V => I)(implicit cache: Cache[V]): BackingStore[F, I ,V] = {
+  def cached[F[_]: Async, I, V: Codec](getId: V => I, ttl: Option[Duration] = None)(implicit cache: Cache[V]): BackingStore[F, I ,V] = {
     import scalacache.CatsEffect.modes.async
 
     new BackingStore[F, I, V] {
       def put(v: V): F[V] =
-        cache.put(getId(v))(v).as(v)
+        cache.put(getId(v))(value = v, ttl = ttl).as(v)
 
       def update(v: V): F[V] =
         put(v)

@@ -4,7 +4,10 @@ import cats.data.EitherT
 import cats.effect.Sync
 import cats.implicits._
 import io.circe.generic.auto._
-import org.gesnuby.vetclinic.model.LoginRequest
+import io.circe.syntax._
+import io.circe.{Encoder, Json}
+import org.gesnuby.vetclinic.model.UserError.alreadyLoggedIn
+import org.gesnuby.vetclinic.model.{UserError, LoginRequest}
 import org.gesnuby.vetclinic.security.Auth.{AppAuthenticator, SecuredService}
 import org.gesnuby.vetclinic.service.AuthService
 import org.http4s.circe._
@@ -17,28 +20,29 @@ class AuthEndpoint[F[_]: Sync](authenticator: AppAuthenticator[F], authService: 
   type Req = Request[F]
 
   implicit val loginDecoder: EntityDecoder[F, LoginRequest] = jsonOf[F, LoginRequest]
+  implicit val errorEncoder: Encoder[UserError] = (error: UserError) => Json.fromString(error.message)
 
   private def loginEndpoint: HttpService[F] = HttpService[F] {
     case req @ POST -> Root / "login" =>
       val action = for {
         request <- checkAlreadyLoggedIn(req)
-        login <- EitherT.right[String](request.as[LoginRequest])
+        login <- EitherT.right[UserError](request.as[LoginRequest])
         user <- authService.verifyLogin(login)
-        cookie <- EitherT.right[String](authenticator.create(user.id))
+        cookie <- EitherT.right[UserError](authenticator.create(user.id))
       } yield cookie
       action.value.flatMap {
         case Right(cookie) => Response[F]().addCookie(cookie.toCookie).pure[F]
-        case Left(error) => BadRequest(error)
+        case Left(error) => BadRequest(error.asJson)
       }
   }
 
   /**
     * Check if user is already logged in
     */
-  private def checkAlreadyLoggedIn(req: Req): EitherT[F, String, Req] =
+  private def checkAlreadyLoggedIn(req: Req): EitherT[F, UserError, Req] =
     EitherT.fromOptionF(authenticator.extractAndValidate(req).value, req)
       .swap
-      .leftMap(_ => "Already logged in")
+      .leftMap(_ => alreadyLoggedIn)
 
   private def logoutEndpoint: SecuredService[F] = TSecAuthService {
     case req @ POST -> Root / "logout" asAuthed _ =>

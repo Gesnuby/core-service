@@ -2,9 +2,9 @@ package org.gesnuby.vetclinic.service
 
 import cats.data.EitherT
 import cats.effect.Sync
-import cats.implicits._
 import de.mkammerer.argon2.Argon2Factory
-import org.gesnuby.vetclinic.model.{LoginRequest, User}
+import org.gesnuby.vetclinic.model.UserError.invalidCredentials
+import org.gesnuby.vetclinic.model.{UserError, LoginRequest, User}
 import org.gesnuby.vetclinic.repository.algebra.UserRepository
 import org.gesnuby.vetclinic.security.ArgonSettings
 
@@ -15,11 +15,11 @@ class AuthService[F[_]: Sync](userRepo: UserRepository[F], argonSettings: ArgonS
   /**
     * Check if supplied user login info (login and password) is correct
     */
-  def verifyLogin(login: LoginRequest): EitherT[F, String, User] = {
-    val maybeUser = EitherT.fromOptionF(userRepo.findByLogin(login.login), "Invalid login or password")
-    maybeUser.flatMap { user =>
-      checkPassword(user.password, login.password).map(_ => user)
-    }
+  def verifyLogin(login: LoginRequest): EitherT[F, UserError, User] = {
+    for {
+      user <- EitherT.fromOptionF(userRepo.findByLogin(login.login), invalidCredentials)
+      _ <- checkPassword(user.password, login.password)
+    } yield user
   }
 
   /**
@@ -32,13 +32,8 @@ class AuthService[F[_]: Sync](userRepo: UserRepository[F], argonSettings: ArgonS
   /**
     * Check if password matches the hash
     */
-  private def checkPassword(hashedPassword: String, password: String): EitherT[F, String, Unit] = {
-    if (argon2.verify(hashedPassword, password)) {
-      EitherT.right[String](().pure[F])
-    } else {
-      EitherT.left[Unit]("Invalid login or password".pure[F])
-    }
-  }
+  private def checkPassword(hashedPassword: String, password: String): EitherT[F, UserError, Unit] =
+    EitherT.cond[F](argon2.verify(hashedPassword, password), (), invalidCredentials)
 }
 
 object AuthService {
